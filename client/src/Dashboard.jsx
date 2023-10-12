@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
+import { Modal, Button } from 'react-bootstrap';
+import NewOpportunityForm from "./components/NewOpp";
 
 function Dashboard(props) {
   const { user, setUser } = props;
@@ -40,18 +42,26 @@ function Dashboard(props) {
   const handleBlur = (id, field) => {
     // Make a copy of the opportunity object to be updated
     const oppToUpdate = opportunities.find((opp) => opp.id === id);
-
+  
     // Clear editing state
     setEditing({});
-
+  
     // If the field being updated is 'status', use the specialized updateStatus function
     if (field === "status") {
       updateStatus(id, oppToUpdate.status);
     } else {
+      const token = Cookies.get("token");  // Assuming your token is stored as "token" in cookies
+      
       axios
-        .put(`http://localhost:8081/opportunities/${id}`,  { withCredentials: true, 
-          [field]: oppToUpdate[field],
-        })
+        .put(`http://localhost:8081/opportunities/${id}`, 
+          { [field]: oppToUpdate[field] }, 
+          { 
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            withCredentials: true
+          }
+        )
         .then(() => {
           setOpportunities(
             opportunities.map((opp) =>
@@ -62,10 +72,20 @@ function Dashboard(props) {
         .catch((err) => console.log(err));
     }
   };
-
+  
   const updateStatus = (id, newStatus) => {
+    const token = Cookies.get("token");  // Assuming your token is stored as "token" in cookies
+    
     axios
-      .put(`http://localhost:8081/opportunities/${id}`, { status: newStatus, withCredentials: true  })
+      .put(`http://localhost:8081/opportunities/${id}`, 
+        { status: newStatus }, 
+        { 
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          withCredentials: true
+        }
+      )
       .then(() => {
         setOpportunities(
           opportunities.map((opp) =>
@@ -75,6 +95,7 @@ function Dashboard(props) {
       })
       .catch((err) => console.log(err));
   };
+  
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -94,13 +115,36 @@ function Dashboard(props) {
       .catch((err) => console.log(err));
   };
 
+
+  const [showModal, setShowModal] = useState(false);
+  const handleClose = () => setShowModal(false);
+  const handleShow = () => setShowModal(true);
+  const afterOpportunitySubmit = () => {
+    setShowModal(false); // Close the modal
+    window.location.reload(); // Refresh the page
+  };
+
   return (
     <div className="container">
       <h1>Opportunity Dashboard</h1>
       <h2 className="my-3">Welcome {user.first_name}</h2>
-      <Link to="/newOpp" className="btn btn-success mb-3">
+      <Button variant="success" onClick={handleShow}>
         Create New Opportunity
-      </Link>
+      </Button>
+      <Modal show={showModal} onHide={handleClose} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Create a New Opportunity</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {/* Pass the callback to the form */}
+          <NewOpportunityForm user={user} afterSubmit={afterOpportunitySubmit} />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
       <hr></hr>
       <h4 className="my-3">Current Opportunities</h4>
       <table className="table">
