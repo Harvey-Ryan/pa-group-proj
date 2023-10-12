@@ -39,6 +39,7 @@ function NewOpportunityForm(props) {
         navigate("/dashboard")
       })
       .catch(err => console.log(err));
+      console.log(formData)
   };  
 
   return (
